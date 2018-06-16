@@ -67,6 +67,24 @@ python本体は重複せずにpyenvで管理して、site-packagesだけをリ�
 はい…。
 
 
+## virtualenv
+ - [Awesomely easy virtualenvs on OSX using pyenv and direnv][1] いろいろあったけどさっさと再現可能な環境を用意していければなんでもいいので、pyenvとdirenvをつかったこのgistを使うのがいいのかもしれない…。でも世界的なスタンダートはvirenvのみらしいので（要出典）なんだかなーーとも。
+
+ - [virtualenvでpython環境を管理する - Qiita][2]
+ぼくがほしかったのはこれ！！！感のあるタイトル。これからやる。
+
+```
+sudo pip install virtualenv
+sudo pip install virtualenvwrapper
+
+echo "source /usr/local/bin/virtualenvwrapper.sh" >> ~/.bashrc
+echo "export WORKON_HOME=~/.virtualenvs" >> ~/.bashrc
+```
+
+
+
+[https://gist.github.com/alexhayes/cb1e6ad873c147502132ae17362a9daf]: [1]
+[https://qiita.com/caad1229/items/325ca5c8ad198b0ebce7]: [2]
 
 
 
