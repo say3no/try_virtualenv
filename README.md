@@ -1,22 +1,14 @@
 # try_virtualenv
 
-仕事でPythonを触る機会が増えたため、開発環境を整理する目的でvirtualenvを活用したい。その実態を掴むためにちょっと触ってみるその記録。
+try_virtualenvという名の「ぼくのつかっているpython開発環境」の紹介みたいな感じになってる。
 
-まだpythonの開発環境の管理というか、ライフサイクルがわかっていない。
+結果から言うと`pip`,`virtualenv`,`pyenv`,`Pycharm CE`で作業している。
 
-たとえばjsなら`git pull`して`npm install`して`npm start`でいい。phpなら`composer install`して`php -s`なわけだ。この実行環境がlocalhostだったりコンテナだったりリモートホストだったりdocker-composeだったりっていうマシンリソースの場所というのはその後考えればいい。
-ミドルウェアより上のレイヤの話をしたい。
+## virtualenvについて
+今の自分の理解で説明するとこうだ。virtualenvはpython_pathを一時的に定義しなおしてくれる。ただそれだけ。
+プロジェクトごとにpython_pathを定義しなおすことによって，プロジェクト単位で依存関係をfixできる。`bundle install`や`npm install`,`composer install`みたいに。
 
-ではpythonではどうなんだろう。pythonの2とか3とかのverは今回考慮しないとすると、`pip install -r requirements.txt -t ./site-packages/`で良いのかと思われた。しかし、composerのautoloaderみたいな仕組みや`package.json`みたいな仕組みが見当たらない。つまり、pythonでは依存関係のあるパッケージへのパスなりネームスペースの処理というのはどういうプラクティスがあるのかがわからない。
-
-で、pythonがどういうふうにimportするディレクトリを参照しているのかまだ良くわかっていないんだけど、コードの中で以下の様に叩けばimport先として親ディレクトリが見れる。
-
-```python
-import sys
-sys.path.append('../')
-```
-
-[Pythonのimportについてまとめる - Qiita](https://qiita.com/suzuki-hoge/items/f951d56290617df4279e)によれば、次の順序にsearchするようだ。
+ちなみに`import`にあたって直後に`python_path`が参照されるのではなく、次のような段階を経て参照しているらしい（検証はしていない）。
 
 >読み込み時に検索する範囲
 >
@@ -26,8 +18,7 @@ sys.path.append('../')
 4. sys.pathに含むディレクトリ
 >
 >sys.pathは絶対パスの文字列リストであり、import sys; print sys.path 等の方法で確認できる
-
-ここでようやく職場の先輩が推奨していたpyenv+virtualenv+direnvで環境を作ると良いみたいな言葉の理解がわずかに進む。要するにdirenvでリポジトリごとに`PYTHONPATH`を変更すればよいということなのだろう。
+>引用：[Pythonのimportについてまとめる - Qiita](https://qiita.com/suzuki-hoge/items/f951d56290617df4279e)
 
 
 ## それはそれとしてvirtualenvの話をしようぜ
@@ -51,7 +42,6 @@ python本体は重複せずにpyenvで管理して、site-packagesだけをリ�
 
 最新版あたりのpython3ならばこのあたりの問題をオフィシャルで対応しているらしいのだがpython2系が主戦場らしい我が身…。依存関係を整理するためにいくつもツールを入れるっていう態度が好きではない。じゃあもうver毎のpythonコンテナ作ってしまうのがいいのだろうか…とあさっているとこういう記事にもぶつかった。
 
-
 - [pyenvが必要かどうかフローチャート - Qiita](https://qiita.com/shibukawa/items/0daab479a2fd2cb8a0e7)
 
 のっけからパンチのあるツイートを引用している。しかし一理ある。そもそも必要かどうかという点を問い直すべきだろう。重要なのは依存関係を明示してCI/CDしやすいような独立した状況を作ることで、七面倒なツールをいれまくることではないのだ。
@@ -68,24 +58,59 @@ python本体は重複せずにpyenvで管理して、site-packagesだけをリ�
 
 
 ## virtualenv
- - [Awesomely easy virtualenvs on OSX using pyenv and direnv][1] いろいろあったけどさっさと再現可能な環境を用意していければなんでもいいので、pyenvとdirenvをつかったこのgistを使うのがいいのかもしれない…。でも世界的なスタンダートはvirenvのみらしいので（要出典）なんだかなーーとも。
 
- - [virtualenvでpython環境を管理する - Qiita][2]
-ぼくがほしかったのはこれ！！！感のあるタイトル。これからやる。
+[公式のドキュメントが一番だよね。](https://packaging.python.org/guides/installing-using-pip-and-virtualenv/)
+
+```bash
+$ mkdir try_virtualenv
+$ cd try_virtualenv
+$ sudo pip install virtualenv
+$ python -m virtualenv hogehoge #仮想環境`hogehoge`の作成
+$ which python
+ /Users/say3no/.pyenv/shims/python
+$ source hogehgoe/bin/activate
+$ which python
+ Users/say3no/try/try_virtualenv/hogehgoe/bin/python
+```
+
+virtualenvのやっていることはpythonのパスとpython_pathの変更？
+
+ - virtualenvのverについて
+```
+$ python -m virtualenv --version
+```
+
+##  依存パッケージについて
+
+### no-site-packages
+`---no-site-packages`でglobalなsite-packagesをpython_pathから外すのだろうか…？
+```bash
+$ python -m virtualenv no-site --no-site-packages  # `--no-site-packages`🐜の場合
+$ source no-site/bin/activate
+$ python show_python_path.py | grep site-packages
+/Users/say3no/try/try_virtualenv/no-site/lib/python2.7/site-packages
+
+$ deactivate
+
+$ python -m virtualenv yes-site
+$ source yes-site/bin/activate
+$ python show_python_path.py | grep site-packages
+/Users/say3no/try/try_virtualenv/no-site/lib/python2.7/site-packages
+```
+
+変化ないやんけ！！！！なんでや！！！
 
 ```
-sudo pip install virtualenv
-sudo pip install virtualenvwrapper
-
-echo "source /usr/local/bin/virtualenvwrapper.sh" >> ~/.bashrc
-echo "export WORKON_HOME=~/.virtualenvs" >> ~/.bashrc
+$ python -m virtualenv | grep -A 2 -- --no-site-packages
+--no-site-packages    DEPRECATED. Retained only for backward compatibility.
+                      Not having access to global site-packages is now the
+                      default behavior.
 ```
 
+コンパチのために残してあって、いまだとデフォでglobal site-packagesにアクセスできないらしい。
+やっぱり一次ソースが一番大事なんやなって。
 
 
 [https://gist.github.com/alexhayes/cb1e6ad873c147502132ae17362a9daf]: [1]
 [https://qiita.com/caad1229/items/325ca5c8ad198b0ebce7]: [2]
-
-
-
 
